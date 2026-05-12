@@ -61,14 +61,20 @@ def preprocess_train(X: pd.DataFrame, y: pd.Series) -> tuple[pd.DataFrame, pd.Se
         X = X.fillna(X.mean()) # fill missing values with mean of each column
         print("removed rows with NaN in X")
     if y.isnull().any():
-        y = y.dropna() # remove rows with NaN in y
+        valid_y_idx = y.dropna().index
+        y = y.loc[valid_y_idx]
+        X = X.loc[valid_y_idx]  # sync X to y's remaining indices
         print("removed rows with NaN in y")
     if len(X) != len(y):
         raise ValueError("Mismatch in number of samples between X and y after preprocessing.")
     assert len(X) == len(y)
     
+    # Final NaN check: ensure NO NaN values remain (including all-NaN columns)
     if X.isnull().any().any():
-        print("Warning: Training set contains NaN values after preprocessing. Consider further handling of missing values.")
+        raise ValueError(f"Training set contains NaN values after preprocessing. Columns with NaN: {X.columns[X.isnull().any()].tolist()}")
+    if y.isnull().any():
+        raise ValueError("Training labels contain NaN values after preprocessing.")
+    
     return X, y
 
 
@@ -93,9 +99,13 @@ def preprocess_test(X: pd.DataFrame) -> pd.DataFrame:
     X["yr_old_house"] = 2026 - X["yr_built"]
     X["yrs_since_renovation"] = 2026 - X["yr_renovated"]
 
-
     if X.isnull().any().any():
         X = X.fillna(X.mean()) # fill missing values with mean of each column
+    
+    # Final NaN check: ensure NO NaN values remain
+    if X.isnull().any().any():
+        raise ValueError(f"Test set contains NaN values after preprocessing. Columns with NaN: {X.columns[X.isnull().any()].tolist()}")
+    
     return X
 
 
@@ -162,8 +172,6 @@ if __name__ == '__main__':
     std_losses = []
     percentages = np.arange(10, 101)
     feature_evaluation(train_X, train_y, output_path=f"{path}/correlations")
-    if test_X.isnull().any().any():
-        print("Warning: Test set contains NaN values. Consider preprocessing the test set to handle missing values.")
     for p in percentages:
         losses = []
         for _ in range(10):
