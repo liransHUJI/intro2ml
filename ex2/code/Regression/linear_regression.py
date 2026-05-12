@@ -29,7 +29,9 @@ class LinearRegression:
         include_intercept: bool, default=True
             Should fitted model include an intercept or not
         """
-        pass
+        self.include_intercept_ = include_intercept
+        self.coefs_ = None
+        self.fitted_ = False
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -47,7 +49,10 @@ class LinearRegression:
         -----
         Fits model with or without an intercept depending on value of `self.include_intercept_`
         """
-        pass
+        if self.include_intercept_:
+            X = np.c_[np.ones(X.shape[0]), X]
+        self.coefs_ = np.linalg.lstsq(X, y, rcond=None)[0]
+        self.fitted_ = True
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -63,7 +68,11 @@ class LinearRegression:
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        pass
+        if not self.fitted_:
+            raise ValueError("Estimator has not been fitted yet.")
+        if self.include_intercept_:
+            X = np.c_[np.ones(X.shape[0]), X]
+        return X @ self.coefs_
 
     def loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -82,4 +91,12 @@ class LinearRegression:
         loss : float
             Performance under MSE loss function
         """
-        pass
+        if not self.fitted_:
+            raise ValueError("Estimator has not been fitted yet.")
+        y_pred = self.predict(X)
+        if len(y_pred) != len(y):
+            raise ValueError("Length of predicted responses does not match length of true labels.")
+        if np.isnan(y_pred).any() or np.isnan(y).any():
+            raise ValueError("Predicted responses or true labels contain NaN values.")
+        value = np.mean((y - y_pred) ** 2)
+        return value
