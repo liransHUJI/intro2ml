@@ -16,7 +16,6 @@ class PolynomialFitting(LinearRegression):
             Degree of polynomial to fit
         """
         super().__init__(False)
-        self.transformed_x = None
         if k < 0:
             raise ValueError("Degree of polynomial must be a non-negative integer.")
         self.k_ = k
@@ -70,8 +69,7 @@ class PolynomialFitting(LinearRegression):
         loss : float
             Performance under MSE loss function
         """
-        X_transformed = self.__transform(X)
-        return super().loss(X_transformed, y)
+        return super().loss(X, y)
 
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
