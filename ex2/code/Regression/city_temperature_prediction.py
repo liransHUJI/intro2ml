@@ -20,15 +20,20 @@ def load_data(filename: str) -> pd.DataFrame:
     -------
     Design matrix and response vector (Temp)
     """
-    data = pd.read_csv(filename)
-    data.dropna(inplace=True) # Remove rows with missing values
+    # Use parse_dates to ensure Date column parsed as datetime
+    data = pd.read_csv(filename, parse_dates=["Date"], dayfirst=False)
 
-    data["DayOfYear"] = pd.to_datetime(data[["Year", "Month", "Day"]]).dt.dayofyear 
-    data = data.drop(columns=["Date"])
+    # Drop rows with missing critical fields
+    data = data.dropna(subset=["Date", "Temp", "Country", "Year", "Month", "Day"])
+
+    # Derive DayOfYear from Date column
+    data["DayOfYear"] = pd.to_datetime(data["Date"]).dt.dayofyear
+
+    # Filter unrealistic temperature values
     mask = (data["Temp"] > -50) & (data["Temp"] < 55)
-    data = data[mask]
+    data = data.loc[mask].reset_index(drop=True)
+
     return data
-    pass
 
 
 if __name__ == '__main__':
@@ -67,32 +72,49 @@ if __name__ == '__main__':
 
     fig.show()
     
-    # Question 4 - Fitting model for different values of `k`
-    seed = 42 # random.randint(0, 1000)
-    # Split data into 75% train and 25% test
-    data = data.sample(frac=1, random_state=seed).reset_index(drop=True)
-    split_idx = int(0.75 * len(data))
-    
-    train_data = data.iloc[:split_idx]
-    test_data = data.iloc[split_idx:]
+    # Question 4 - Fitting model for different values of `k` (Israel-only)
+    seed = 42
 
-    y = np.array(data["Temp"].to_numpy())
-    X = np.array(data["DayOfYear"].to_numpy())
-    loss = []
+    # Filter to Israel subset for analysis
+    data_il = data[data["Country"] == "Israel"].reset_index(drop=True)
+    if data_il.empty:
+        raise RuntimeError("No Israel data found in dataset.")
+
+    # Shuffle Israel data and split 75/25
+    data_il = data_il.sample(frac=1, random_state=seed).reset_index(drop=True)
+    split_idx = int(0.75 * len(data_il))
+    train_data = data_il.iloc[:split_idx]
+    test_data = data_il.iloc[split_idx:]
+
+    X_train = train_data["DayOfYear"].to_numpy()
+    y_train = train_data["Temp"].to_numpy()
+    X_test = test_data["DayOfYear"].to_numpy()
+    y_test = test_data["Temp"].to_numpy()
+
+    errors = []
     for k in range(1, 11):
         poly_fit = PolynomialFitting(k)
-        poly_fit.fit(X, y)
-        loss.append(round(poly_fit.loss(X, y), 2))
-        print(f"Loss for k={k}: {loss[-1]}")
+        poly_fit.fit(X_train, y_train)
 
-    plot_data = pd.DataFrame({"k": range(1, 11), "Loss": loss})
+        test_loss = poly_fit.loss(X_test, y_test)
+        test_loss_rounded = round(test_loss, 2)
+        errors.append(test_loss_rounded)
+        print(f"Loss for k={k}: {test_loss_rounded}")
+
+    # Choose best k (smallest loss, tie -> smallest k)
+    min_loss = min(errors)
+    best_ks = [i + 1 for i, v in enumerate(errors) if v == min_loss]
+    best_k = min(best_ks)
+    print(f"Best k selected: {best_k} with test loss {min_loss}")
+
+    # Bar plot of errors per k
+    plot_data = pd.DataFrame({"k": range(1, 11), "Loss": errors})
     fig = px.bar(
         data_frame=plot_data,
         x="k",
         y="Loss",
-        title="MSE Loss of Polynomial Fitting for Different Degrees (k)",
+        title="MSE Loss of Polynomial Fitting for Different Degrees (k) (Israel Test Set)",
         labels={"Loss": "Mean Squared Error", "k": "Degree of Polynomial"},
-        color="Loss", # Adding color makes it easier to see which k has the lowest loss
+        color="Loss",
     )
     fig.show()
-    pass
