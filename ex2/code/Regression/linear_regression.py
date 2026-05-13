@@ -94,9 +94,5 @@ class LinearRegression:
         if not self.fitted_:
             raise ValueError("Estimator has not been fitted yet.")
         y_pred = self.predict(X)
-        if len(y_pred) != len(y):
-            raise ValueError("Length of predicted responses does not match length of true labels.")
-        if np.isnan(y_pred).any() or np.isnan(y).any():
-            raise ValueError("Predicted responses or true labels contain NaN values.")
         value = np.mean((y - y_pred) ** 2)
         return value
