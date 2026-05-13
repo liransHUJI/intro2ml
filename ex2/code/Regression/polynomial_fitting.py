@@ -16,7 +16,10 @@ class PolynomialFitting(LinearRegression):
             Degree of polynomial to fit
         """
         super().__init__(False)
-        pass
+        self.transformed_x = None
+        if k < 0:
+            raise ValueError("Degree of polynomial must be a non-negative integer.")
+        self.k_ = k
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """
@@ -30,7 +33,8 @@ class PolynomialFitting(LinearRegression):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        pass
+        X_transformed = self.__transform(X)
+        super().fit(X_transformed, y)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -46,7 +50,8 @@ class PolynomialFitting(LinearRegression):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        pass
+        X_transformed = self.__transform(X)
+        return super().predict(X_transformed)
 
     def loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -65,7 +70,8 @@ class PolynomialFitting(LinearRegression):
         loss : float
             Performance under MSE loss function
         """
-        pass
+        X_transformed = self.__transform(X)
+        return super().loss(X_transformed, y)
 
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -80,4 +86,4 @@ class PolynomialFitting(LinearRegression):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        pass
+        return np.vander(X, N=self.k_ + 1, increasing=True)
