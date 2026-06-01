@@ -56,9 +56,14 @@ class FullyConnectedLayer(BaseModule):
         Weights are randomly initialized following N(0, 1/input_dim)
         """
         super().__init__()
+        self._input_dim = input_dim
+        self._output_dim = output_dim
+        self._activation = activation
+        self._include_intercept = include_intercept
         self._layer_input_X = None
         self._grad_weights = None
-        raise NotImplementedError()
+        rows = input_dim + int(include_intercept)
+        self._weights = np.random.normal(0, 1 / input_dim, size=(rows, output_dim))
 
     def compute_output(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """
@@ -76,7 +81,15 @@ class FullyConnectedLayer(BaseModule):
         output: ndarray of shape (n_samples, output_dim)
             Value of function at point self._weights
         """
-        raise NotImplementedError()
+        if self._include_intercept:
+            self._layer_input_X = np.c_[np.ones(X.shape[0]), X]
+        else:
+            self._layer_input_X = X
+
+        output = self._layer_input_X @ self.weights
+        if self._activation is not None:
+            output = self._activation.compute_output(output)
+        return output
 
     def backprop(self, upstream_grad: np.ndarray) -> np.ndarray:
         """
@@ -101,7 +114,15 @@ class FullyConnectedLayer(BaseModule):
         You should calculate and store the exact gradient of the loss with
         respect to the weights in `self._grad_weights`: ndarray of shape (input_dim, output_dim).
         """
-        raise NotImplementedError()
+        local_grad = upstream_grad
+        if self._activation is not None:
+            local_grad = self._activation.backprop(local_grad)
+
+        self._grad_weights = self._layer_input_X.T @ local_grad
+        downstream_grad = local_grad @ self.weights.T
+        if self._include_intercept:
+            downstream_grad = downstream_grad[:, 1:]
+        return downstream_grad
 
     def get_grad_weights(self) -> np.ndarray:
         """
@@ -120,7 +141,7 @@ class FullyConnectedLayer(BaseModule):
         The value returned by this method is only valid after a forward pass
         and a subsequent backward pass have been performed.
         """
-        raise NotImplementedError()
+        return self._grad_weights
 
     def clear_cache(self) -> None:
         """
@@ -130,7 +151,10 @@ class FullyConnectedLayer(BaseModule):
         and OOM errors. This should be called only after the optimizer has
         collected the gradients.
         """
-        raise NotImplementedError()
+        self._layer_input_X = None
+        self._grad_weights = None
+        if self._activation is not None:
+            self._activation.clear_cache()
 
 
 class ReLU(BaseModule):
@@ -161,7 +185,8 @@ class ReLU(BaseModule):
         output: ndarray of shape (n_samples, input_dim)
             Data after performing the ReLU activation function
         """
-        raise NotImplementedError()
+        self._activation_input_X = X
+        return np.maximum(X, 0)
 
     def backprop(self, upstream_grad: np.ndarray) -> np.ndarray:
         """
@@ -181,7 +206,7 @@ class ReLU(BaseModule):
             The matrix of partial derivatives with respect to the module's
             input, shaped for the next step in the backward chain.
         """
-        raise NotImplementedError()
+        return upstream_grad * (self._activation_input_X > 0)
 
     def clear_cache(self) -> None:
         """
@@ -191,7 +216,7 @@ class ReLU(BaseModule):
         and OOM errors. This should be called only after the optimizer has
         collected the gradients.
         """
-        raise NotImplementedError()
+        self._activation_input_X = None
 
 
 class CrossEntropyLoss(BaseModule):
@@ -218,7 +243,7 @@ class CrossEntropyLoss(BaseModule):
         output: ndarray of shape (1, )
             The average Cross-Entropy loss across all samples in the batch.
         """
-        raise NotImplementedError()
+        return np.array([cross_entropy(y, softmax(X))])
 
     def compute_jacobian(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         """
@@ -239,4 +264,11 @@ class CrossEntropyLoss(BaseModule):
             A matrix of partial derivatives shaped to be compatible with
             the subsequent backward pass.
         """
-        raise NotImplementedError()
+        probabilities = softmax(X)
+        y = np.asarray(y)
+        if y.ndim == 1:
+            one_hot = np.zeros_like(probabilities)
+            one_hot[np.arange(y.shape[0]), y.astype(int)] = 1
+        else:
+            one_hot = y
+        return (probabilities - one_hot) / X.shape[0]

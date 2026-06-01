@@ -6,7 +6,6 @@ import os
 # Imports and settings for plotting of graphs
 import plotly.io as pio
 import plotly.graph_objects as go
-import imageio.v3 as iio
 
 # Local imports
 from neural_network import NeuralNetwork
@@ -80,6 +79,7 @@ def decision_surface(predict, xrange, yrange, density=120, dotted=False, colorsc
    
 def animation_to_gif(fig, filename, frame_duration=100, width=1200, height=800):
     import tempfile
+    import imageio.v3 as iio
 
     # Set figure size
     fig.update_layout(width=width, height=height)

@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
+import os
 from typing import Tuple
 from nn_presentation_utils import custom, plot_decision_boundary, animate_decision_boundary
 from nn_loss_functions import accuracy
@@ -66,11 +68,13 @@ def generate_nonlinear_data(
 
 if __name__ == '__main__':
     np.random.seed(0)
+    Path("figures").mkdir(exist_ok=True)
+    quick = os.environ.get("ML_QUICK") == "1"
 
     # Generate and visualize dataset
     n_features, n_classes = 2, 3
     train_X, train_y, test_X, test_y = generate_nonlinear_data(
-        samples_per_class=500, n_features=n_features, n_classes=n_classes, train_proportion=0.8)
+        samples_per_class=100 if quick else 500, n_features=n_features, n_classes=n_classes, train_proportion=0.8)
 
     go.Figure(data=[go.Scatter(x=train_X[:, 0], y=train_X[:, 1], mode='markers',
                                marker=dict(color=train_y, colorscale=custom, line=dict(color="black", width=1)))],
@@ -81,12 +85,83 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------------------------------#
     # Question 1: Fitting simple network with two hidden layers                                    #
     # ---------------------------------------------------------------------------------------------#
+    max_iter = 200 if quick else 5000
+    network = NeuralNetwork(
+        modules=[
+            FullyConnectedLayer(n_features, 16, ReLU()),
+            FullyConnectedLayer(16, 16, ReLU()),
+            FullyConnectedLayer(16, n_classes),
+        ],
+        loss_fn=CrossEntropyLoss(),
+        solver=GradientDescent(learning_rate=FixedLR(.1), max_iter=max_iter),
+    ).fit(train_X, train_y)
+    q1_accuracy = accuracy(test_y, network.predict(test_X))
+    print(f"Q1 test accuracy: {q1_accuracy:.4f}")
+    plot_decision_boundary(network, ((-1.1, 1.1), (-1.1, 1.1)), train_X, train_y, "Q1")\
+        .write_image("figures/simulated_q1_decision_boundary.png")
 
     # ---------------------------------------------------------------------------------------------#
     # Question 2: Fitting a network with no hidden layers                                          #
     # ---------------------------------------------------------------------------------------------#
+    linear_network = NeuralNetwork(
+        modules=[FullyConnectedLayer(n_features, n_classes)],
+        loss_fn=CrossEntropyLoss(),
+        solver=GradientDescent(learning_rate=FixedLR(.1), max_iter=max_iter),
+    ).fit(train_X, train_y)
+    q2_accuracy = accuracy(test_y, linear_network.predict(test_X))
+    print(f"Q2 no-hidden-layers test accuracy: {q2_accuracy:.4f}")
+    plot_decision_boundary(linear_network, ((-1.1, 1.1), (-1.1, 1.1)), train_X, train_y, "Q2")\
+        .write_image("figures/simulated_q2_decision_boundary.png")
 
     # ---------------------------------------------------------------------------------------------#
     # Question 3+4: Plotting network convergence process                                           #
     # ---------------------------------------------------------------------------------------------#
+    def convergence_callback_factory(store_every=100):
+        losses, grad_norms, stored_weights = [], [], []
 
+        def callback(**kwargs):
+            losses.append(float(np.squeeze(kwargs["val"])))
+            grad_norms.append(float(np.linalg.norm(kwargs["grad"])))
+            if kwargs["t"] % store_every == 0:
+                stored_weights.append(np.copy(kwargs["weights"]))
+
+        return callback, losses, grad_norms, stored_weights
+
+    callback, losses, grad_norms, stored_weights = convergence_callback_factory(20 if quick else 100)
+    tracked_network = NeuralNetwork(
+        modules=[
+            FullyConnectedLayer(n_features, 16, ReLU()),
+            FullyConnectedLayer(16, 16, ReLU()),
+            FullyConnectedLayer(16, n_classes),
+        ],
+        loss_fn=CrossEntropyLoss(),
+        solver=GradientDescent(learning_rate=FixedLR(.1), max_iter=max_iter, callback=callback),
+    ).fit(train_X, train_y)
+    print(f"Q3 final loss: {losses[-1]:.4f}, final grad norm: {grad_norms[-1]:.4f}")
+    make_subplots(rows=1, cols=2, subplot_titles=("Loss", "Gradient Norm"))\
+        .add_trace(go.Scatter(y=losses, mode="lines"), row=1, col=1)\
+        .add_trace(go.Scatter(y=grad_norms, mode="lines"), row=1, col=2)\
+        .update_layout(title="Simulated Data Q3 Convergence", showlegend=False)\
+        .write_image("figures/simulated_q3_convergence.png")
+    animate_decision_boundary(tracked_network, stored_weights, ((-1.1, 1.1), (-1.1, 1.1)), train_X, train_y, "Q3")
+
+    callback, losses, grad_norms, stored_weights = convergence_callback_factory(20 if quick else 100)
+    narrow_network = NeuralNetwork(
+        modules=[
+            FullyConnectedLayer(n_features, 6, ReLU()),
+            FullyConnectedLayer(6, 6, ReLU()),
+            FullyConnectedLayer(6, n_classes),
+        ],
+        loss_fn=CrossEntropyLoss(),
+        solver=GradientDescent(learning_rate=FixedLR(.1), max_iter=max_iter, callback=callback),
+    ).fit(train_X, train_y)
+    q4_accuracy = accuracy(test_y, narrow_network.predict(test_X))
+    print(f"Q4 width-6 test accuracy: {q4_accuracy:.4f}")
+    make_subplots(rows=1, cols=2, subplot_titles=("Loss", "Gradient Norm"))\
+        .add_trace(go.Scatter(y=losses, mode="lines"), row=1, col=1)\
+        .add_trace(go.Scatter(y=grad_norms, mode="lines"), row=1, col=2)\
+        .update_layout(title="Simulated Data Q4 Width-6 Convergence", showlegend=False)\
+        .write_image("figures/simulated_q4_convergence.png")
+    plot_decision_boundary(narrow_network, ((-1.1, 1.1), (-1.1, 1.1)), train_X, train_y, "Q4")\
+        .write_image("figures/simulated_q4_decision_boundary.png")
+    animate_decision_boundary(narrow_network, stored_weights, ((-1.1, 1.1), (-1.1, 1.1)), train_X, train_y, "Q4")

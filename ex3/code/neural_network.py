@@ -29,7 +29,8 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         super().__init__()
         self._forward_pass_result = None
         self._modules = modules
-        raise NotImplementedError()
+        self._loss_fn = loss_fn
+        self._solver = solver
 
     # region BaseEstimator implementations
     def _fit(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -44,7 +45,7 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        self._solver.fit(self, X, y)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -79,7 +80,7 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         loss : float
             Performance under specified loss function
         """
-        raise NotImplementedError()
+        return float(np.squeeze(self.compute_output(X, y)))
     # endregion
 
     # region BaseModule implementations
@@ -100,7 +101,9 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         output: ndarray of shape (1, )
             Network's output value including pass through the specified loss function
         """
-        raise NotImplementedError()
+        logits = self.compute_prediction(X)
+        self._forward_pass_result = logits
+        return self._loss_fn.compute_output(logits, y)
 
     def compute_prediction(self, X: np.ndarray):
         """
@@ -117,7 +120,10 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         output : ndarray of shape (n_samples, n_classes)
             Network's output values prior to the call of the loss function
         """
-        raise NotImplementedError()
+        output = X
+        for module in self._modules:
+            output = module.compute_output(output)
+        return output
 
     def compute_jacobian(self, X: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
         """
@@ -140,7 +146,19 @@ class NeuralNetwork(BaseEstimator, BaseModule):
             A single flattened vector containing the gradients of the loss with
             respect to every parameter, concatenated in the order of the architecture.
         """
-        raise NotImplementedError()
+        logits = self._forward_pass_result
+        if logits is None:
+            logits = self.compute_prediction(X)
+
+        downstream_grad = self._loss_fn.compute_jacobian(logits, y)
+        gradients = []
+        for module in reversed(self._modules):
+            downstream_grad = module.backprop(downstream_grad)
+            gradients.append(np.copy(module.get_grad_weights()))
+            module.clear_cache()
+
+        self._forward_pass_result = None
+        return NeuralNetwork._flatten_parameters(list(reversed(gradients)))
 
     def clear_cache(self) -> None:
         """
@@ -150,7 +168,9 @@ class NeuralNetwork(BaseEstimator, BaseModule):
         and OOM errors. This should be called only after the optimizer has
         collected the gradients.
         """
-        raise NotImplementedError()
+        self._forward_pass_result = None
+        for module in self._modules:
+            module.clear_cache()
 
     @property
     def weights(self) -> np.ndarray:
