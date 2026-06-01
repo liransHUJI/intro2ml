@@ -69,7 +69,7 @@ def generate_nonlinear_data(
 if __name__ == '__main__':
     np.random.seed(0)
     Path("figures").mkdir(exist_ok=True)
-    quick = os.environ.get("ML_QUICK") == "1"
+    quick = False
 
     # Generate and visualize dataset
     n_features, n_classes = 2, 3

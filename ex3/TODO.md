@@ -2,6 +2,175 @@
 
 Source PDF: `ex3 - GD and NN.pdf`
 
+## Full-Grade Requirements Checklist
+
+Use this section as the final grading checklist. Everything here must be complete for a full-credit submission.
+
+### A. Required Submission Package
+
+- [ ] Create a single zip named `ex3_ID.zip`, replacing `ID` with your ID.
+- [ ] Put all required files directly in the zip root, without directories.
+- [ ] Include exactly one `Answers.pdf` with all written answers and required plots.
+- [ ] Include the required Python files:
+  - `gradient_descent.py`
+  - `gradient_descent_investigation.py`
+  - `learning_rate.py`
+  - `modules.py`
+  - `neural_network.py`
+  - `nn_loss_functions.py`
+  - `nn_mnist_digit_classification.py`
+  - `nn_simulated_data.py`
+  - `nn_utils.py`
+  - `nn_modules.py`
+  - `stochastic_gradient_descent.py`
+- [ ] Do not rely on separate plot files for grading.
+  - The PDF explicitly says plots included as separate files are considered not provided.
+  - Generated `figures/*.html` and `figures/*.png` are local working artifacts only.
+- [ ] Submit the zip to the designated Moodle activity before the deadline shown there.
+
+### B. Required Theoretical Answers in Answers.pdf
+
+- [ ] Q1: Prove that a nonnegative weighted sum of convex functions is convex.
+- [ ] Q2: Give a counterexample showing that composition of two convex functions need not be convex.
+- [ ] Q3: Prove hinge loss is convex in `(w, b)`.
+- [ ] Q4: Derive a valid sub-gradient of hinge loss.
+- [ ] Q5: Prove the sum of sub-gradients is a sub-gradient of the sum.
+- [ ] Q6: Derive a sub-gradient for the Soft-SVM objective with regularization.
+- [ ] Q7a: Derive gradients for output-layer parameters `u` and `c`.
+- [ ] Q7b: Derive gradients for hidden-layer parameters `W` and `b`.
+- [ ] Q7c: State which forward-pass values must be cached for backpropagation.
+- [ ] Q8a: Derive the Jacobian of cross-entropy with respect to probabilities.
+- [ ] Q8b: Derive the Jacobian of softmax-cross-entropy with respect to logits.
+
+### C. Required Code Implementations
+
+- [ ] `learning_rate.py`: implement `FixedLR` and `ExponentialLR`.
+- [ ] `modules.py`: implement `L1` and squared `L2` objective outputs and gradients/sub-gradients.
+- [ ] `gradient_descent.py`: implement GD with:
+  - fixed stopping by `max_iter` and tolerance on `||w^(t)-w^(t-1)||`;
+  - learning-rate strategy usage;
+  - callback arguments exactly as documented;
+  - output modes `last`, `best`, and `average`;
+  - running average without storing all previous solutions.
+- [ ] `gradient_descent_investigation.py`: implement:
+  - `get_gd_state_recorder_callback`;
+  - `compare_fixed_learning_rates`;
+  - `compare_exponential_decay_rates`.
+- [ ] `nn_loss_functions.py`: implement numerically stable `softmax` and average `cross_entropy`.
+- [ ] `nn_modules.py`: implement:
+  - `FullyConnectedLayer`;
+  - `ReLU`;
+  - `CrossEntropyLoss`;
+  - forward caching;
+  - backpropagation;
+  - `self._grad_weights`;
+  - `clear_cache`.
+- [ ] `neural_network.py`: implement:
+  - constructor;
+  - `_fit`;
+  - `_loss`;
+  - `compute_prediction`;
+  - `compute_output`;
+  - `compute_jacobian`;
+  - `clear_cache`;
+  - flattened weight getter/setter compatibility.
+- [ ] `stochastic_gradient_descent.py`: implement SGD with:
+  - mini-batch sampling;
+  - fixed stopping by `max_iter` and tolerance;
+  - callback arguments exactly as documented, including `batch_indices`;
+  - `_partial_fit`.
+- [ ] `nn_utils.py`: implement `confusion_matrix`.
+
+### D. Required Gradient-Descent Experiments and Answers
+
+- [ ] Run fixed-learning-rate GD from `w0 = (sqrt(2), e/3)` for both L1 and L2.
+- [ ] Use fixed learning rates `{1, 0.1, 0.01, 0.001}`.
+- [ ] Include descent-path plots for `eta = 0.01` in `Answers.pdf`.
+- [ ] Explain the L1 vs L2 descent-path differences for `eta = 0.01`.
+- [ ] Describe two phenomena observed in L1 descent paths with fixed learning rate.
+- [ ] Include convergence-rate plots for L1 and L2 with all fixed learning rates.
+- [ ] Explain the convergence-rate plots.
+- [ ] Report the lowest loss achieved for L1 and L2 and explain the difference.
+- [ ] Run exponential-decay GD on L1 from `w0 = (sqrt(2), e/3)`.
+- [ ] Use `eta = 0.1` and `gamma in {0.9, 0.95, 0.99, 1}`.
+- [ ] Include one convergence plot containing all decay rates.
+- [ ] Explain exponential-decay results compared with fixed learning rate.
+- [ ] Report the lowest L1 norm achieved using exponential decay and explain why it differs.
+- [ ] Include the descent-path plot for `gamma = 0.95`.
+- [ ] Explain how the descent path changed compared with fixed learning rate.
+
+### E. Required Simulated-Data Neural-Network Experiments and Answers
+
+- [ ] In `nn_simulated_data.py`, use the required baseline architecture:
+  - two fully connected hidden layers;
+  - 16 neurons in each hidden layer;
+  - intercepts included and not counted in the 16 neurons;
+  - ReLU activations;
+  - softmax-cross-entropy loss;
+  - implemented Gradient Descent;
+  - fixed learning rate `eta = 0.1`;
+  - up to `5000` iterations.
+- [ ] Q1: Fit the baseline network on the train set.
+- [ ] Q1: Include the learned decision-boundary plot in `Answers.pdf`.
+- [ ] Q1: Report test accuracy.
+- [ ] Q2: Remove both hidden layers only for this question.
+- [ ] Q2: Repeat decision-boundary plot and test accuracy.
+- [ ] Q2: Explain the result.
+- [ ] Q3: Rerun Q1 with a callback recording convergence.
+- [ ] Q3: Include loss-vs-iteration and gradient-norm-vs-iteration plots in `Answers.pdf`.
+- [ ] Q3: Store network weights every 100 iterations.
+- [ ] Q3: Call `animate_decision_boundary` for inspection.
+- [ ] Q3: Do not include the animation output in the submission.
+- [ ] Q4: Reduce both hidden layers to 6 neurons only for this question.
+- [ ] Q4: Repeat Q3 plots and animation.
+- [ ] Q4: Explain the result.
+
+### F. Required MNIST Experiments and Answers
+
+- [ ] In `nn_mnist_digit_classification.py`, use the required baseline architecture:
+  - two fully connected hidden layers;
+  - 64 neurons in each hidden layer;
+  - intercepts included and not counted in the 64 neurons;
+  - ReLU activations;
+  - softmax-cross-entropy loss;
+  - implemented SGD;
+  - fixed learning rate `eta = 0.1`;
+  - up to `10000` iterations;
+  - mini-batches of `256`.
+- [ ] Add a callback recording current loss and gradient norm.
+- [ ] Q5: Train the baseline network and report test accuracy.
+- [ ] Q6: Include loss-vs-iteration and gradient-norm-vs-iteration plots in `Answers.pdf`.
+- [ ] Q7: Include a confusion matrix for true vs predicted test labels.
+- [ ] Q7: Identify the two most common confusions.
+- [ ] Q7: Identify the three least common confusions.
+- [ ] Q7: Explain whether the confusion results make sense.
+- [ ] Q8: Remove both hidden layers only for this question.
+- [ ] Q8: Repeat Q5 and explain what the accuracy suggests about the data.
+- [ ] Q9: Filter test samples whose true digit is `7`.
+- [ ] Q9: Compute prediction confidence as `max_k p_k` after softmax.
+- [ ] Q9: Include grids of the 64 most confident and 64 least confident true-7 images.
+- [ ] Q9: Explain visible differences between the two image sets.
+- [ ] Q10: Train the same baseline architecture twice, once with GD and once with SGD.
+- [ ] Q10: Use fixed learning rate `10^-1`, max `10000` iterations, tolerance `10^-10`.
+- [ ] Q10: Use SGD batch size `64`.
+- [ ] Q10: Record current loss and elapsed time at each iteration.
+- [ ] Q10: Train on the first `2500` train samples.
+- [ ] Q10: Include GD runtime-vs-loss plot.
+- [ ] Q10: Include SGD runtime-vs-loss plot.
+- [ ] Q10: Include one combined figure with both solvers as two scatters, no subplots.
+- [ ] Q10: Explain similarities and differences in runtime, loss scale, and curve shape.
+
+### G. Final Verification Before Submission
+
+- [ ] Run `python -m compileall -q .` from `ex3/code`.
+- [ ] Run `python gradient_descent_investigation.py` from `ex3/code`.
+- [ ] Run `python nn_simulated_data.py` from `ex3/code` without `ML_QUICK=1` for final numbers.
+- [ ] Run `python nn_mnist_digit_classification.py` from `ex3/code` without `ML_QUICK=1` for final numbers.
+- [ ] Inspect all generated plots and copy/embed required plots into `Answers.pdf`.
+- [ ] Confirm `Answers.pdf` contains all theoretical answers, practical answers, numeric results, explanations, and required plots.
+- [ ] Confirm generated `figures/` files are not treated as substitutes for plots in `Answers.pdf`.
+- [ ] Confirm the final zip contains only the required Python files plus `Answers.pdf` at the zip root.
+
 ## Progress Notes
 
 - [x] Implemented core GD, SGD, learning rates, L1/L2 modules, NN losses, NN layers, `NeuralNetwork`, and `confusion_matrix`.

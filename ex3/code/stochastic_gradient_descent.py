@@ -35,7 +35,7 @@ class StochasticGradientDescent:
                  tol: float = 1e-5,
                  max_iter: int = 1000,
         batch_size: int = 1,
-                 callback: Callable[[...], None] = default_callback):
+             callback: Callable[..., None] = default_callback):
         """
         Instantiate a new instance of the GradientDescent class
 
@@ -168,8 +168,9 @@ class StochasticGradientDescent:
         eta: float
             learning rate used at current iteration
         """
-        val = f.compute_output(X=X, y=y)
         jac = f.compute_jacobian(X=X, y=y)
         eta = self._learning_rate.lr_step(t=t)
         f.weights = f.weights - eta * jac
-        return val, jac, eta
+        current_val = f.compute_output(X=X, y=y)
+        current_jac = f.compute_jacobian(X=X, y=y)
+        return current_val, current_jac, eta
